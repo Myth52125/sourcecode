@@ -32,6 +32,7 @@ typedef void (*ngx_pool_cleanup_pt)(void *data);
 typedef struct ngx_pool_cleanup_s  ngx_pool_cleanup_t;
 
 struct ngx_pool_cleanup_s {
+    //释放内存块的函数
     ngx_pool_cleanup_pt   handler;
     void                 *data;
     ngx_pool_cleanup_t   *next;

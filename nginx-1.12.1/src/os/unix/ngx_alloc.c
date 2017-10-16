@@ -54,6 +54,9 @@ ngx_memalign(size_t alignment, size_t size, ngx_log_t *log)
     void  *p;
     int    err;
 
+    //使用posix_memalign申请内存，并以alignment对齐
+    //成功返回0，
+    //http://www.jianshu.com/p/2f28226f5f9a
     err = posix_memalign(&p, alignment, size);
 
     if (err) {
