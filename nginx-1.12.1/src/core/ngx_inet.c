@@ -176,7 +176,7 @@ ngx_inet6_addr(u_char *p, size_t len, u_char *addr)
 
 #endif
 
-
+//将网络字节序二进制值转换成点分十进制串的字符串
 size_t
 ngx_sock_ntop(struct sockaddr *sa, socklen_t socklen, u_char *text, size_t len,
     ngx_uint_t port)
@@ -196,6 +196,7 @@ ngx_sock_ntop(struct sockaddr *sa, socklen_t socklen, u_char *text, size_t len,
     case AF_INET:
 
         sin = (struct sockaddr_in *) sa;
+        //吧值取出来了
         p = (u_char *) &sin->sin_addr;
 
         if (port) {
@@ -205,7 +206,7 @@ ngx_sock_ntop(struct sockaddr *sa, socklen_t socklen, u_char *text, size_t len,
             p = ngx_snprintf(text, len, "%ud.%ud.%ud.%ud",
                              p[0], p[1], p[2], p[3]);
         }
-
+        //这里返回的是
         return (p - text);
 
 #if (NGX_HAVE_INET6)

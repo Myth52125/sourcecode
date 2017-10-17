@@ -413,8 +413,7 @@ ngx_pool_cleanup_add(ngx_pool_t *p, size_t size)
 
     //释放函数为NULL
     c->handler = NULL;
-    //——————————————
-    //为什么要这样指向？？？
+    //将新的删除函数挂再第一块
     c->next = p->cleanup;
     p->cleanup = c;
 

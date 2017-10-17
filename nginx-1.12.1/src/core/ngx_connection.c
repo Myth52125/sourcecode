@@ -12,10 +12,12 @@
 
 ngx_os_io_t  ngx_io;
 
-
+ 
 static void ngx_drain_connections(ngx_cycle_t *cycle);
 
-
+//这个函数，是将一个利用一个sockaddr,创建一个ngx_listening_t
+//然后存储到ngx_conf_t指定的array中
+//内存也是在其上面的内存池中分配
 ngx_listening_t *
 ngx_create_listening(ngx_conf_t *cf, struct sockaddr *sockaddr,
     socklen_t socklen)
@@ -29,22 +31,25 @@ ngx_create_listening(ngx_conf_t *cf, struct sockaddr *sockaddr,
     if (ls == NULL) {
         return NULL;
     }
-
+    //分配这么大的内存。ngx_listening_t
     ngx_memzero(ls, sizeof(ngx_listening_t));
-
+    //在内存池上分配这么大的内存
     sa = ngx_palloc(cf->pool, socklen);
     if (sa == NULL) {
         return NULL;
     }
-
+    //拷贝进来
     ngx_memcpy(sa, sockaddr, socklen);
-
+    //这里！！！
+    //ngx_array_push在这是真正意义上的push
+    //ngx_listening_t的sockaddr存在别的地方，这只是个指针
     ls->sockaddr = sa;
     ls->socklen = socklen;
-
+    //网络字节序二进制值转换成点分十进制串
     len = ngx_sock_ntop(sa, socklen, text, NGX_SOCKADDR_STRLEN, 1);
     ls->addr_text.len = len;
 
+    //这里是设置一个最大长度，但是设置了干什么？？
     switch (ls->sockaddr->sa_family) {
 #if (NGX_HAVE_INET6)
     case AF_INET6:
@@ -58,6 +63,8 @@ ngx_create_listening(ngx_conf_t *cf, struct sockaddr *sockaddr,
         break;
 #endif
     case AF_INET:
+        //储存ip地址的最大长度
+        //NGX_INET_ADDRSTRLEN   (sizeof("255.255.255.255") - 1)
         ls->addr_text_max_len = NGX_INET_ADDRSTRLEN;
         break;
     default:
@@ -65,16 +72,18 @@ ngx_create_listening(ngx_conf_t *cf, struct sockaddr *sockaddr,
         break;
     }
 
+    //在内存池上分配一块内存，放text
     ls->addr_text.data = ngx_pnalloc(cf->pool, len);
     if (ls->addr_text.data == NULL) {
         return NULL;
     }
-
+    //将网络字节序二进制值转换成点分十进制串的字符串转存到ls->addr_text.data中
     ngx_memcpy(ls->addr_text.data, text, len);
 
     ls->fd = (ngx_socket_t) -1;
     ls->type = SOCK_STREAM;
 
+    //这里设置了选项
     ls->backlog = NGX_LISTEN_BACKLOG;
     ls->rcvbuf = -1;
     ls->sndbuf = -1;
@@ -90,21 +99,22 @@ ngx_create_listening(ngx_conf_t *cf, struct sockaddr *sockaddr,
     return ls;
 }
 
-
+//？？？？暂时看不懂
 ngx_int_t
 ngx_clone_listening(ngx_conf_t *cf, ngx_listening_t *ls)
 {
+//这个宏，是否复用套接字对
 #if (NGX_HAVE_REUSEPORT)
 
     ngx_int_t         n;
     ngx_core_conf_t  *ccf;
     ngx_listening_t   ols;
-
+    
     if (!ls->reuseport) {
         return NGX_OK;
     }
 
-    ols = *ls;
+    ols = *ls;  
 
     ccf = (ngx_core_conf_t *) ngx_get_conf(cf->cycle->conf_ctx,
                                            ngx_core_module);
