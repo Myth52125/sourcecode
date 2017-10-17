@@ -43,10 +43,10 @@ ngx_timezone_update(void)
     struct tm  *t;
     char        buf[4];
 
-    s = time(0);
-
+    s = time(0); 
+    //获取当前日期并转化为本地时间
     t = localtime(&s);
-
+    //格式化时间
     strftime(buf, 4, "%H", t);
 
 #endif

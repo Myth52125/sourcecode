@@ -12,13 +12,13 @@
 #include <ngx_config.h>
 #include <ngx_core.h>
 
-
+//自己定义的str
 typedef struct {
     size_t      len;
     u_char     *data;
 } ngx_str_t;
 
-
+//自己定义的一个pair
 typedef struct {
     ngx_str_t   key;
     ngx_str_t   value;
@@ -36,15 +36,18 @@ typedef struct {
     u_char     *data;
 } ngx_variable_value_t;
 
-
+//把一个char[] ,去掉最后的'\0'，然后存储
 #define ngx_string(str)     { sizeof(str) - 1, (u_char *) str }
+//空的str
 #define ngx_null_string     { 0, NULL }
+//类似memcpy,用一个char[] 去初始化一个str
 #define ngx_str_set(str, text)                                               \
     (str)->len = sizeof(text) - 1; (str)->data = (u_char *) text
 #define ngx_str_null(str)   (str)->len = 0; (str)->data = NULL
 
-
+//这里是转小写的
 #define ngx_tolower(c)      (u_char) ((c >= 'A' && c <= 'Z') ? (c | 0x20) : c)
+//这里是转大写的
 #define ngx_toupper(c)      (u_char) ((c >= 'a' && c <= 'z') ? (c & ~0x20) : c)
 
 void ngx_strlow(u_char *dst, u_char *src, size_t n);
@@ -56,12 +59,15 @@ void ngx_strlow(u_char *dst, u_char *src, size_t n);
 /* msvc and icc7 compile strcmp() to inline loop */
 #define ngx_strcmp(s1, s2)  strcmp((const char *) s1, (const char *) s2)
 
-
+//判断是否是子字符串
 #define ngx_strstr(s1, s2)  strstr((const char *) s1, (const char *) s2)
 #define ngx_strlen(s)       strlen((const char *) s)
 
+//查找字符串s中首次出现字符c的位置
 #define ngx_strchr(s1, c)   strchr((const char *) s1, (int) c)
 
+//ngx_inline  = inline
+//这个是，找p出现的位置。返回指针
 static ngx_inline u_char *
 ngx_strlchr(u_char *p, u_char *last, u_char c)
 {
@@ -105,13 +111,16 @@ void *ngx_memcpy(void *dst, const void *src, size_t n);
 #endif
 
 
+//我擦？这里根据编译器还定义。
 #if ( __INTEL_COMPILER >= 800 )
 
 /*
  * the simple inline cycle copies the variable length strings up to 16
  * bytes faster than icc8 autodetecting _intel_fast_memcpy()
  */
-
+//拷贝字符，但是为什么分界17？
+//有意设置的？？
+//返回最后一个字符后一个位置的指针
 static ngx_inline u_char *
 ngx_copy(u_char *dst, u_char *src, size_t len)
 {
@@ -125,6 +134,7 @@ ngx_copy(u_char *dst, u_char *src, size_t len)
         return dst;
 
     } else {
+        //为什么分界值17，上面有解释
         return ngx_cpymem(dst, src, len);
     }
 }

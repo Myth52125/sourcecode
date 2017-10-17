@@ -57,29 +57,36 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     ngx_timezone_update();
 
     /* force localtime update with a new timezone */
-
+    //难看
+    //#define ngx_timeofday()      (ngx_time_t *) ngx_cached_time
+    //他不是个函数，他就是个值
     tp = ngx_timeofday();
     tp->sec = 0;
 
+    //这个函数设置了一系列的全局时间
     ngx_time_update();
 
 
     log = old_cycle->log;
 
+    //创建了一个新的内存池
     pool = ngx_create_pool(NGX_CYCLE_POOL_SIZE, log);
     if (pool == NULL) {
         return NULL;
     }
+    //不需要这一步吧？
     pool->log = log;
-
+    //在内存池上创建了一个新的ngx_cycle_t
     cycle = ngx_pcalloc(pool, sizeof(ngx_cycle_t));
     if (cycle == NULL) {
+        //如果失败就删除内存池，返回
         ngx_destroy_pool(pool);
         return NULL;
     }
 
     cycle->pool = pool;
     cycle->log = log;
+    //这里还记录旧的ngx_cycle_t
     cycle->old_cycle = old_cycle;
 
     cycle->conf_prefix.len = old_cycle->conf_prefix.len;
