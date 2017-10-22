@@ -112,7 +112,7 @@ typedef struct {
 typedef char *(*ngx_conf_handler_pt)(ngx_conf_t *cf,
     ngx_command_t *dummy, void *conf);
 
-
+//解析配置文件时描述每个指令的属性
 struct ngx_conf_s {
     char                 *name;
     ngx_array_t          *args;

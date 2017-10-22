@@ -25,19 +25,26 @@ void
 ngx_timezone_update(void)
 {
 #if (NGX_FREEBSD)
-
+    //如果设置了时区，直接返回
     if (getenv("TZ")) {
         return;
     }
 
+    //如果没有设置时区
+    //那么先设置为utc,然后清空，然后再使用tzset()重新加载
+    //http://blog.csdn.net/xin_yu_xin/article/details/38371837
     putenv("TZ=UTC");
 
+    //tzset完成的工作是把当前时区信息（通过TZ环境变量或者/etc/localtime）读入并缓冲,重新加载
     tzset();
-
+    //删除定义，不存在也不出错
     unsetenv("TZ");
-
-    tzset();
-
+    //加载系统默认的配置
+    tzset(); 
+    //如果没有指定TZ环境变量，那么缺省的时区配置文件可以用/etc/localtime来获得
+    //这个文件可能是一个符号链接指向真实的文件，也有可能就是将/usr/share/zoneinfo下的文件复制过来达到所要的结果。
+    //由于环境变量由各个进程组单独继承，那么在设置时区之后很难改变其他进程组的环境变量
+    //所以一般的系统很少直接设置TZ环境变量，而是由/etc/localtime文件来指示时区位置
 #elif (NGX_LINUX)
     time_t      s;
     struct tm  *t;

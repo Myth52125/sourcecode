@@ -74,8 +74,9 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     if (pool == NULL) {
         return NULL;
     }
-    //不需要这一步吧？
+    
     pool->log = log;
+    
     //在内存池上创建了一个新的ngx_cycle_t
     cycle = ngx_pcalloc(pool, sizeof(ngx_cycle_t));
     if (cycle == NULL) {
