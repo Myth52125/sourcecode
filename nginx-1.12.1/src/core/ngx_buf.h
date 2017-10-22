@@ -18,12 +18,15 @@ typedef void *            ngx_buf_tag_t;
 typedef struct ngx_buf_s  ngx_buf_t;
 
 struct ngx_buf_s {
+    //buf内存块的首地址
     u_char          *pos;
     u_char          *last;
     off_t            file_pos;
     off_t            file_last;
 
+    //开始存储buf的指针
     u_char          *start;         /* start of buffer */
+    //buf结束位置
     u_char          *end;           /* end of buffer */
     ngx_buf_tag_t    tag;
     ngx_file_t      *file;
@@ -52,6 +55,7 @@ struct ngx_buf_s {
     unsigned         last_shadow:1;
     unsigned         temp_file:1;
 
+    //这个数表示内存除的chain要有多少个buf块
     /* STUB */ int   num;
 };
 

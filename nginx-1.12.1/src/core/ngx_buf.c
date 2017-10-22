@@ -14,11 +14,14 @@ ngx_create_temp_buf(ngx_pool_t *pool, size_t size)
 {
     ngx_buf_t *b;
 
+    //依然是分配一个buf的头部
+    //ngx_calloc_buf(pool) ngx_pcalloc(pool, sizeof(ngx_buf_t))
     b = ngx_calloc_buf(pool);
     if (b == NULL) {
         return NULL;
     }
 
+    //然后在分配buf世纪存储信息的内存块
     b->start = ngx_palloc(pool, size);
     if (b->start == NULL) {
         return NULL;
@@ -35,15 +38,21 @@ ngx_create_temp_buf(ngx_pool_t *pool, size_t size)
      *     and flags
      */
 
+    //设置开始和结束
+    //指向数据块的开始
     b->pos = b->start;
+    //可以存储信息的首地址
     b->last = b->start;
+    //结束位置
     b->end = b->last + size;
     b->temporary = 1;
 
+    //返回分配的buf头部首地址
     return b;
 }
 
-
+//buf链，挂在在内存池上
+//这只是初始化内存池的chain的函数
 ngx_chain_t *
 ngx_alloc_chain_link(ngx_pool_t *pool)
 {
@@ -64,7 +73,8 @@ ngx_alloc_chain_link(ngx_pool_t *pool)
     return cl;
 }
 
-
+//这个函数使用一个buf，初始化了内存池的chain链
+//依次创建了多个
 ngx_chain_t *
 ngx_create_chain_of_bufs(ngx_pool_t *pool, ngx_bufs_t *bufs)
 {
@@ -73,6 +83,9 @@ ngx_create_chain_of_bufs(ngx_pool_t *pool, ngx_bufs_t *bufs)
     ngx_buf_t    *b;
     ngx_chain_t  *chain, *cl, **ll;
 
+    //只分配一个buf内存块
+    //但是后面的buf都指向它？？？？
+    //应该移动到循环里面把。
     p = ngx_palloc(pool, bufs->num * bufs->size);
     if (p == NULL) {
         return NULL;
@@ -81,7 +94,7 @@ ngx_create_chain_of_bufs(ngx_pool_t *pool, ngx_bufs_t *bufs)
     ll = &chain;
 
     for (i = 0; i < bufs->num; i++) {
-
+        //分配头部
         b = ngx_calloc_buf(pool);
         if (b == NULL) {
             return NULL;
@@ -122,19 +135,21 @@ ngx_create_chain_of_bufs(ngx_pool_t *pool, ngx_bufs_t *bufs)
     return chain;
 }
 
-
+//将一个chain链上的buf拷贝一份到指定内存池的chain上
 ngx_int_t
 ngx_chain_add_copy(ngx_pool_t *pool, ngx_chain_t **chain, ngx_chain_t *in)
 {
     ngx_chain_t  *cl, **ll;
 
     ll = chain;
-
+    //找到一个chain的最后一个，也就是->NULL
     for (cl = *chain; cl; cl = cl->next) {
         ll = &cl->next;
     }
-
+    //依次拷贝in的buf
+    //使用**，防止修改了in
     while (in) {
+        //分配一个chain用来村buf
         cl = ngx_alloc_chain_link(pool);
         if (cl == NULL) {
             return NGX_ERROR;
@@ -157,18 +172,21 @@ ngx_chain_get_free_buf(ngx_pool_t *p, ngx_chain_t **free)
 {
     ngx_chain_t  *cl;
 
+    //如果该chain存在，那么buf卒在，直接返回
+    //然后将这一个chain移出内存池了，直接返回
     if (*free) {
         cl = *free;
         *free = cl->next;
         cl->next = NULL;
         return cl;
     }
-
+    //如果chain不存在，那么分配chain，和buf
     cl = ngx_alloc_chain_link(p);
     if (cl == NULL) {
         return NULL;
     }
 
+    //分配buf头部，但是不分配buf的内存块
     cl->buf = ngx_calloc_buf(p);
     if (cl->buf == NULL) {
         return NULL;
@@ -179,20 +197,21 @@ ngx_chain_get_free_buf(ngx_pool_t *p, ngx_chain_t **free)
     return cl;
 }
 
-
+//
 void
 ngx_chain_update_chains(ngx_pool_t *p, ngx_chain_t **free, ngx_chain_t **busy,
     ngx_chain_t **out, ngx_buf_tag_t tag)
 {
     ngx_chain_t  *cl;
-
+    
     if (*out) {
         if (*busy == NULL) {
             *busy = *out;
 
         } else {
+            //找到最后一块
             for (cl = *busy; cl->next; cl = cl->next) { /* void */ }
-
+            //
             cl->next = *out;
         }
 
