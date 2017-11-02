@@ -101,12 +101,24 @@ __STL_BEGIN_NAMESPACE
     void (* __malloc_alloc_oom_handler)() = 0;
     // g++ 2.7.2 does not handle static template data members.
 # else
+    
     extern void (* __malloc_alloc_oom_handler)();
 # endif
 #endif
 
-//该类所有的方法和成员几乎都是静态，也就是说，嗯，这个类
-//在程序一开始就初始化了。
+
+/*
+该类所有的方法和成员几乎都是静态，也就是说，嗯，这个类
+在程序一开始就初始化了。
+
+这个类就是分配内存空间啊，如果分配不成功就循环分配。
+
+同时使用一个分配函数，该函数干了啥不知道啊。
+
+分配空间使用的是malloc，重新分配空间使用realloc
+
+单为什么要用模板，里面没用到__inst啊？？
+*/
 template <int __inst>
 class __malloc_alloc_template {
 
@@ -127,27 +139,44 @@ public:
     //使用malloc()分配
     void* __result = malloc(__n);
     //使用值在前而不是变量在前的方式判断。嗯，以后要借鉴
-    //如果分配失败就
+    //如果分配失败就循环进行分配
+    //但是__malloc_alloc_oom_handler不存在的话就报错，这个函数在上面extern的
     if (0 == __result) __result = _S_oom_malloc(__n);
     return __result;
   }
 
   static void deallocate(void* __p, size_t /* __n */)
   {
+    //就free了？使用的malloc和free
     free(__p);
   }
-
+  
+  //重新分配内存
   static void* reallocate(void* __p, size_t /* old_sz */, size_t __new_sz)
   {
+    //realloc()
+    //先判断当前的指针是否有足够的连续空间，如果有，扩大mem_address指向的地址，并且将mem_address返回
+    // 如果空间不够，先按照newsize指定的大小分配空间，将原有数据从头到尾拷贝到新分配的内存区域
+    // 而后释放原来mem_address所指内存区域
+    // （注意：原来指针是自动释放，不需要手动使用free，该函数内部进行了free）
+    // 同时返回新分配的内存区域的首地址。即重新分配存储器块的地址。
     void* __result = realloc(__p, __new_sz);
     if (0 == __result) __result = _S_oom_realloc(__p, __new_sz);
     return __result;
   }
 
+  //void (* __set_malloc_handler(void (*__f)()))()是一个函数，
+  // 它接受一个形式为void (*_)()的函数指针作参数，
+  // 并且返回一个形式为void (*)()的函数指针。
+  // 也就是void 和最后一个(),表示返回值
+  // * __set_malloc_handler(void (*__f)())这才是函数名和参数
+  // void (*__f)()这就是参数
   static void (* __set_malloc_handler(void (*__f)()))()
   {
+    //将参数设置为新的分配内存的函数。
     void (* __old)() = __malloc_alloc_oom_handler;
     __malloc_alloc_oom_handler = __f;
+    //旧的返回。
     return(__old);
   }
 
@@ -159,6 +188,7 @@ public:
 template <int __inst>
 void (* __malloc_alloc_template<__inst>::__malloc_alloc_oom_handler)() = 0;
 #endif
+
 
 template <int __inst>
 void*
@@ -183,6 +213,7 @@ __malloc_alloc_template<__inst>::_S_oom_malloc(size_t __n)
     }
 }
 
+//reallocate失败以后的循环分配函数。和_S_oom_malloc差不多的形式
 template <int __inst>
 void* __malloc_alloc_template<__inst>::_S_oom_realloc(void* __p, size_t __n)
 {
@@ -193,21 +224,29 @@ void* __malloc_alloc_template<__inst>::_S_oom_realloc(void* __p, size_t __n)
         __my_malloc_handler = __malloc_alloc_oom_handler;
         if (0 == __my_malloc_handler) { __THROW_BAD_ALLOC; }
         (*__my_malloc_handler)();
+        //使用realloc
         __result = realloc(__p, __n);
         if (__result) return(__result);
     }
 }
 
 typedef __malloc_alloc_template<0> malloc_alloc;
+/*
+_Alloc应该就是__malloc_alloc_template这个类了。
 
+这个类干了个啥？就是封装了下。封装了一个类型，一个分配器类。
+全是静态成员
+*/
 template<class _Tp, class _Alloc>
 class simple_alloc {
 
 public:
     static _Tp* allocate(size_t __n)
       { return 0 == __n ? 0 : (_Tp*) _Alloc::allocate(__n * sizeof (_Tp)); }
+    //如果没有大小，就分配一个。
     static _Tp* allocate(void)
       { return (_Tp*) _Alloc::allocate(sizeof (_Tp)); }
+    //__malloc_alloc_template的deallocate，没有用到第二个参数啊。
     static void deallocate(_Tp* __p, size_t __n)
       { if (0 != __n) _Alloc::deallocate(__p, __n * sizeof (_Tp)); }
     static void deallocate(_Tp* __p)
@@ -219,6 +258,10 @@ public:
 // NDEBUG, but it's far better to just use the underlying allocator
 // instead when no checking is desired.
 // There is some evidence that this can confuse Purify.
+/*
+
+这个类有点看不懂
+*/
 template <class _Alloc>
 class debug_alloc {
 
@@ -232,14 +275,19 @@ public:
 
   static void* allocate(size_t __n)
   {
+    //保证不会分配为0的内存空间, 而且要保证内存对齐,所以加上_S_extra=8
     char* __result = (char*)_Alloc::allocate(__n + (int) _S_extra);
     *(size_t*)__result = __n;
+    // 把分配内存的最前面设置成n的大小, 用于后面校验  
+    // 内存对齐的作用就是保护前面extra大小的数据不被修改 
     return __result + (int) _S_extra;
   }
 
+  //看不懂************************************
   static void deallocate(void* __p, size_t __n)
   {
     char* __real_p = (char*)__p - (int) _S_extra;
+    //如果*(size_t *)real_p != n则肯定发生向前越界  
     assert(*(size_t*)__real_p == __n);
     _Alloc::deallocate(__real_p, __n + (int) _S_extra);
   }
@@ -298,6 +346,7 @@ typedef malloc_alloc single_client_alloc;
   enum {_NFREELISTS = 16}; // _MAX_BYTES/_ALIGN
 #endif
 
+
 template <bool threads, int inst>
 class __default_alloc_template {
 
@@ -309,37 +358,51 @@ private:
     enum {_MAX_BYTES = 128};
     enum {_NFREELISTS = 16}; // _MAX_BYTES/_ALIGN
 # endif
+  //内存对齐的惯用手法。先对齐-1，然后抹去后面的对齐-1位
+  //另一种对齐方法((((bytes) + _ALIGN - 1) * _ALIGN) / _ALIGN)
+  //使用除法的性质，将小数部分抹去。
   static size_t
   _S_round_up(size_t __bytes) 
     { return (((__bytes) + (size_t) _ALIGN-1) & ~((size_t) _ALIGN - 1)); }
 
 __PRIVATE:
+  // 在一个“联合”内可以定义多种不同的数据类型， 一个被说明为该“联合”类型的变量中，
+  // 允许装入该“联合”所定义的任何一种数据，这些数据共享同一段内存，
+  // 已达到节省空间的目的（还有一个节省空间的类型：位域）。 
+  // 这是一个非常特殊的地方，也是联合的特征。
+  // 另外，同struct一样，联合默认访问权限也是公有的，并且，也具有成员函数。
+  // 而在“联合”中，各成员共享一段内存空间， 一个联合变量的长度等于各成员中最长的长度
+  // 所谓的共享不是指把多个成员同时装入一个联合变量内， 
+  // 而是指该联合变量可被赋予任一成员值，但每次只能赋一种值， 赋入新值则冲去旧值
+
+  //但是这玩意的作用没看懂*********************************
   union _Obj {
         union _Obj* _M_free_list_link;
         char _M_client_data[1];    /* The client sees this.        */
   };
 private:
+
+//这里定义了一个数组，这个数组有volatile属性，同时，大小为16*一个指针大小.
 # if defined(__SUNPRO_CC) || defined(__GNUC__) || defined(__HP_aCC)
     static _Obj* __STL_VOLATILE _S_free_list[]; 
         // Specifying a size results in duplicate def for 4.1
 # else
     static _Obj* __STL_VOLATILE _S_free_list[_NFREELISTS]; 
 # endif
+  //返回__bytes，所需要分配的内存对齐的块的个数。
   static  size_t _S_freelist_index(size_t __bytes) {
         return (((__bytes) + (size_t)_ALIGN-1)/(size_t)_ALIGN - 1);
   }
 
-  // Returns an object of size __n, and optionally adds to size __n free list.
   static void* _S_refill(size_t __n);
-  // Allocates a chunk for nobjs of size size.  nobjs may be reduced
-  // if it is inconvenient to allocate the requested number.
   static char* _S_chunk_alloc(size_t __size, int& __nobjs);
 
-  // Chunk allocation state.
+  //内存池起点，终点，已经分配了的大小。
   static char* _S_start_free;
   static char* _S_end_free;
   static size_t _S_heap_size;
 
+//没看懂****************************************
 # ifdef __STL_THREADS
     static _STL_mutex_lock _S_node_allocator_lock;
 # endif
@@ -361,7 +424,7 @@ public:
   static void* allocate(size_t __n)
   {
     void* __ret = 0;
-
+    //大于预定的大小，直接使用，分配器在堆上分配 128
     if (__n > (size_t) _MAX_BYTES) {
       __ret = malloc_alloc::allocate(__n);
     }
@@ -386,10 +449,11 @@ public:
 
     return __ret;
   };
-
+//没看懂****************************************
   /* __p may not be 0 */
   static void deallocate(void* __p, size_t __n)
   {
+    //使用一级分配器分配的。
     if (__n > (size_t) _MAX_BYTES)
       malloc_alloc::deallocate(__p, __n);
     else {
@@ -437,6 +501,10 @@ inline bool operator!=(const __default_alloc_template<__threads, __inst>&,
 /* the malloc heap too much.                                            */
 /* We assume that size is properly aligned.                             */
 /* We hold the allocation lock.                                         */
+
+
+
+
 template <bool __threads, int __inst>
 char*
 __default_alloc_template<__threads, __inst>::_S_chunk_alloc(size_t __size, 
@@ -451,22 +519,28 @@ __default_alloc_template<__threads, __inst>::_S_chunk_alloc(size_t __size,
         _S_start_free += __total_bytes;
         return(__result);
     } else if (__bytes_left >= __size) {
+        //剩余空间能够分配的个数
         __nobjs = (int)(__bytes_left/__size);
+        //剩下的内存能分配多少就分配多少，多出来的没分配。
         __total_bytes = __size * __nobjs;
         __result = _S_start_free;
         _S_start_free += __total_bytes;
         return(__result);
     } else {
+      //待分配内存的大小。
         size_t __bytes_to_get = 
 	  2 * __total_bytes + _S_round_up(_S_heap_size >> 4);
         // Try to make use of the left-over piece.
         if (__bytes_left > 0) {
+            //求出在_S_free_list中的偏移
             _Obj* __STL_VOLATILE* __my_free_list =
                         _S_free_list + _S_freelist_index(__bytes_left);
 
+            //这里是分配不出足够大的内存，所以将，最后块内存变为_Obj，指向__my_free_list
             ((_Obj*)_S_start_free) -> _M_free_list_link = *__my_free_list;
             *__my_free_list = (_Obj*)_S_start_free;
         }
+        //这里彻底看不懂了*******************
         _S_start_free = (char*)malloc(__bytes_to_get);
         if (0 == _S_start_free) {
             size_t __i;
