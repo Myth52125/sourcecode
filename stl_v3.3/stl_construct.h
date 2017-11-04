@@ -48,6 +48,9 @@ inline void _Construct(_T1* __p, const _T2& __value) {
   new ((void*) __p) _T1(__value);
 }
 
+// new时候，先传入了指针，然后再调用构造函数
+// 类似于 new p A();我曹，A()是构造函数，不是类型名
+// new A;这样A是类型名。
 template <class _T1>
 inline void _Construct(_T1* __p) {
   new ((void*) __p) _T1();

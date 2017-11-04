@@ -915,7 +915,11 @@ struct __allocator
     return size_t(-1) / sizeof(_Tp);
   }
 
+  // 我曹，是new出来的。然后主动调用析构函数。因为使用delete会释放空间？？？？
+  // 我曹，这么深！
+  // 但是怎么就能确定在哪里构造啊？
   void construct(pointer __p, const _Tp &__val) { new (__p) _Tp(__val); }
+  // 嗯，显式的调用了析构函数
   void destroy(pointer __p) { __p->~_Tp(); }
 };
 
