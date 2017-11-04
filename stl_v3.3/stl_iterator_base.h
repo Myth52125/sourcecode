@@ -50,6 +50,8 @@ struct random_access_iterator_tag : public bidirectional_iterator_tag {};
 // the C++ standard.  (They have been replaced by struct iterator.)
 // They are included for backward compatibility with the HP STL.
 
+
+//名字是input但却是一种只读迭代器
 template <class _Tp, class _Distance> struct input_iterator {
   typedef input_iterator_tag iterator_category;
   typedef _Tp                value_type;
@@ -58,6 +60,7 @@ template <class _Tp, class _Distance> struct input_iterator {
   typedef _Tp&               reference;
 };
 
+//只写迭代器
 struct output_iterator {
   typedef output_iterator_tag iterator_category;
   typedef void                value_type;
@@ -66,6 +69,7 @@ struct output_iterator {
   typedef void                reference;
 };
 
+//读写迭代器
 template <class _Tp, class _Distance> struct forward_iterator {
   typedef forward_iterator_tag iterator_category;
   typedef _Tp                  value_type;
@@ -74,7 +78,7 @@ template <class _Tp, class _Distance> struct forward_iterator {
   typedef _Tp&                 reference;
 };
 
-
+//可移动的读写迭代器，但是只能一次一个
 template <class _Tp, class _Distance> struct bidirectional_iterator {
   typedef bidirectional_iterator_tag iterator_category;
   typedef _Tp                        value_type;
@@ -83,6 +87,7 @@ template <class _Tp, class _Distance> struct bidirectional_iterator {
   typedef _Tp&                       reference;
 };
 
+//可以一次跳几个的迭代器，读写
 template <class _Tp, class _Distance> struct random_access_iterator {
   typedef random_access_iterator_tag iterator_category;
   typedef _Tp                        value_type;
@@ -105,6 +110,10 @@ struct iterator {
 
 #ifdef __STL_CLASS_PARTIAL_SPECIALIZATION
 
+
+//下面三个是用来提取 迭代器所指类型的工具。
+//传入类型，能够获取该类型
+//这个是类类型提取类型的工具
 template <class _Iterator>
 struct iterator_traits {
   typedef typename _Iterator::iterator_category iterator_category;
@@ -114,6 +123,7 @@ struct iterator_traits {
   typedef typename _Iterator::reference         reference;
 };
 
+//这个明显就是内置类型的。
 template <class _Tp>
 struct iterator_traits<_Tp*> {
   typedef random_access_iterator_tag iterator_category;
@@ -123,6 +133,7 @@ struct iterator_traits<_Tp*> {
   typedef _Tp&                        reference;
 };
 
+//这个是内置类型const 提取类型的工具
 template <class _Tp>
 struct iterator_traits<const _Tp*> {
   typedef random_access_iterator_tag iterator_category;
@@ -139,6 +150,8 @@ struct iterator_traits<const _Tp*> {
 
 // We introduce internal names for these functions.
 
+
+//返回了个什么
 template <class _Iter>
 inline typename iterator_traits<_Iter>::iterator_category
 __iterator_category(const _Iter&)
@@ -320,6 +333,8 @@ distance(_InputIterator __first, _InputIterator __last) {
 
 #endif /* __STL_CLASS_PARTIAL_SPECIALIZATION */
 
+//第三个参数只是让编译器匹配对应的函数，并没有什么实际作用。
+//只是标记
 template <class _InputIter, class _Distance>
 inline void __advance(_InputIter& __i, _Distance __n, input_iterator_tag) {
   while (__n--) ++__i;

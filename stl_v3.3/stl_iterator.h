@@ -41,6 +41,7 @@ protected:
 public:
   typedef _Container          container_type;
   typedef output_iterator_tag iterator_category;
+  //只写类的，所以下面的都不需要
   typedef void                value_type;
   typedef void                difference_type;
   typedef void                pointer;
@@ -52,6 +53,7 @@ public:
     container->push_back(__value);
     return *this;
   }
+  //都返回this
   back_insert_iterator<_Container>& operator*() { return *this; }
   back_insert_iterator<_Container>& operator++() { return *this; }
   back_insert_iterator<_Container>& operator++(int) { return *this; }
@@ -88,6 +90,7 @@ public:
   explicit front_insert_iterator(_Container& __x) : container(&__x) {}
   front_insert_iterator<_Container>&
   operator=(const typename _Container::value_type& __value) { 
+    //末班类型是个容器
     container->push_front(__value);
     return *this;
   }
@@ -112,6 +115,7 @@ inline front_insert_iterator<_Container> front_inserter(_Container& __x) {
   return front_insert_iterator<_Container>(__x);
 }
 
+//插入的迭代器
 template <class _Container>
 class insert_iterator {
 protected:
@@ -128,11 +132,14 @@ public:
   insert_iterator(_Container& __x, typename _Container::iterator __i) 
     : container(&__x), iter(__i) {}
   insert_iterator<_Container>&
-  operator=(const typename _Container::value_type& __value) { 
+  operator=(const typename _Container::value_type& __value) {
+    //插入一个元素以后，迭代器向后移动
+    //在迭代器所指位置插入，然后迭代器指向下一个 
     iter = container->insert(iter, __value);
     ++iter;
     return *this;
   }
+  
   insert_iterator<_Container>& operator*() { return *this; }
   insert_iterator<_Container>& operator++() { return *this; }
   insert_iterator<_Container>& operator++(int) { return *this; }
@@ -164,6 +171,7 @@ template <class _BidirectionalIterator, class _Tp, class _Reference = _Tp&,
 template <class _BidirectionalIterator, class _Tp, class _Reference, 
           class _Distance> 
 #endif
+
 class reverse_bidirectional_iterator {
   typedef reverse_bidirectional_iterator<_BidirectionalIterator, _Tp, 
                                          _Reference, _Distance>  _Self;
@@ -182,6 +190,7 @@ public:
   _BidirectionalIterator base() const { return current; }
   _Reference operator*() const {
     _BidirectionalIterator __tmp = current;
+    //？？？
     return *--__tmp;
   }
 #ifndef __SGI_STL_NO_ARROW_OPERATOR
