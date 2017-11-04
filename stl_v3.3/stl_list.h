@@ -40,21 +40,26 @@ __STL_BEGIN_NAMESPACE
 #pragma set woff 1375
 #endif
 
+// 将连接的链子提取出来了
 struct _List_node_base {
   _List_node_base* _M_next;
   _List_node_base* _M_prev;
 };
 
+// 然后继承
+// 这样链子就有了数据
 template <class _Tp>
 struct _List_node : public _List_node_base {
   _Tp _M_data;
 };
 
+// 简单的封装访问.
 struct _List_iterator_base {
   typedef size_t                     size_type;
   typedef ptrdiff_t                  difference_type;
   typedef bidirectional_iterator_tag iterator_category;
 
+  // 链子
   _List_node_base* _M_node;
 
   _List_iterator_base(_List_node_base* __x) : _M_node(__x) {}
@@ -71,6 +76,7 @@ struct _List_iterator_base {
   }
 };  
 
+// 这层是封装了什么？封装了运算符？
 template<class _Tp, class _Ref, class _Ptr>
 struct _List_iterator : public _List_iterator_base {
   typedef _List_iterator<_Tp,_Tp&,_Tp*>             iterator;
@@ -84,11 +90,16 @@ struct _List_iterator : public _List_iterator_base {
 
   _List_iterator(_Node* __x) : _List_iterator_base(__x) {}
   _List_iterator() {}
+  // 这是个啥？表示迭代器？但是没有点运算符的啊。
+  // 是_List_iterator_base？
   _List_iterator(const iterator& __x) : _List_iterator_base(__x._M_node) {}
 
+  // 这里_M_node在哪里？是_Node吧？
   reference operator*() const { return ((_Node*) _M_node)->_M_data; }
 
 #ifndef __SGI_STL_NO_ARROW_OPERATOR
+  // 直接返回的&(operator*())，嗯，转换为值，然后再取地址？
+  // ->直接指向了值
   pointer operator->() const { return &(operator*()); }
 #endif /* __SGI_STL_NO_ARROW_OPERATOR */
 
@@ -146,6 +157,7 @@ distance_type(const _List_iterator_base&)
 #ifdef __STL_USE_STD_ALLOCATORS
 
 // Base for general standard-conforming allocators.
+// 什么分配的内存分配器
 template <class _Tp, class _Allocator, bool _IsStatic>
 class _List_alloc_base {
 public:
@@ -156,14 +168,18 @@ public:
   _List_alloc_base(const allocator_type& __a) : _Node_allocator(__a) {}
 
 protected:
+  // 就是添加和析构的函数
+  // 只分配内存，用在哪里不知道。
   _List_node<_Tp>* _M_get_node()
    { return _Node_allocator.allocate(1); }
   void _M_put_node(_List_node<_Tp>* __p)
     { _Node_allocator.deallocate(__p, 1); }
 
 protected:
+  // 这里定义了名字啊.不是保存了
   typename _Alloc_traits<_List_node<_Tp>, _Allocator>::allocator_type
            _Node_allocator;
+  // 这个_M_node又是什么啊？也没用啊。
   _List_node<_Tp>* _M_node;
 };
 
@@ -185,9 +201,11 @@ protected:
   void _M_put_node(_List_node<_Tp>* __p) { _Alloc_type::deallocate(__p, 1); }
 
 protected:
+  // 也是.干啥用的啊
   _List_node<_Tp>* _M_node;
 };
 
+// 单个节点的分配和析构?
 template <class _Tp, class _Alloc>
 class _List_base 
   : public _List_alloc_base<_Tp, _Alloc,
@@ -200,6 +218,7 @@ public:
   typedef typename _Base::allocator_type allocator_type;
 
   _List_base(const allocator_type& __a) : _Base(__a) {
+    // 一个节点初始化
     _M_node = _M_get_node();
     _M_node->_M_next = _M_node;
     _M_node->_M_prev = _M_node;
@@ -239,6 +258,7 @@ protected:
   void _M_put_node(_List_node<_Tp>* __p) { _Alloc_type::deallocate(__p, 1); } 
 
 protected:
+  
   _List_node<_Tp>* _M_node;
 };
 
@@ -248,6 +268,7 @@ template <class _Tp, class _Alloc>
 void 
 _List_base<_Tp,_Alloc>::clear() 
 {
+  // 节点收尾相连.所以可以这样遍历.释放
   _List_node<_Tp>* __cur = (_List_node<_Tp>*) _M_node->_M_next;
   while (__cur != _M_node) {
     _List_node<_Tp>* __tmp = __cur;
@@ -255,6 +276,7 @@ _List_base<_Tp,_Alloc>::clear()
     _Destroy(&__tmp->_M_data);
     _M_put_node(__tmp);
   }
+  // 最后一个节点不释放.然后给再自己指向自己
   _M_node->_M_next = _M_node;
   _M_node->_M_prev = _M_node;
 }
