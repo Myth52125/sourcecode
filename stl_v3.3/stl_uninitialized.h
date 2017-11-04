@@ -80,6 +80,7 @@ inline _ForwardIter
                               __VALUE_TYPE(__result));
 }
 
+// 二进制的移动
 inline char* uninitialized_copy(const char* __first, const char* __last,
                                 char* __result) {
   memmove(__result, __first, __last - __first);

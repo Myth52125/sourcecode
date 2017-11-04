@@ -51,10 +51,10 @@ template <class T> inline void copy(T* source,T* destination,int n) {
 }
 */
 
-
+// 标记符号
 struct __true_type {
 };
-
+// 标记符号
 struct __false_type {
 };
 
