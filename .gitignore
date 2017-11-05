@@ -29,19 +29,19 @@ muduo-master/muduo/base/CMakeLists.txt
 *.m4
 *.guess
 
-asio-1.10.8/compile
+compile
 
-asio-1.10.8/config.sub
-asio-1.10.8/configure
-asio-1.10.8/configure.ac
-asio-1.10.8/COPYING
-asio-1.10.8/depcomp
-asio-1.10.8/INSTALL
-asio-1.10.8/install-sh
-asio-1.10.8/LICENSE_1_0.txt
-asio-1.10.8/missing
-asio-1.10.8/test-driver
-asio-1.10.8/doc/
+config.sub
+configure
+configure.ac
+COPYING
+depcomp
+INSTALL
+install-sh
+LICENSE_1_0.txt
+missing
+test-driver
+doc/
 
 *.msc
 *.mgw
