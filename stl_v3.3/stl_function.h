@@ -33,6 +33,10 @@
 
 __STL_BEGIN_NAMESPACE
 
+// 这个结构体力，只有两个类型。
+// 用于保存传入参数的类型和返回值的类型
+// 因此在继承和使用的时候，必须要有具体的一个类类型对象传进来
+// 同时两个类型也能够被继承的类使用
 template <class _Arg, class _Result>
 struct unary_function {
   typedef _Arg argument_type;
@@ -46,6 +50,10 @@ struct binary_function {
   typedef _Result result_type;
 };      
 
+
+// 下面是简单的函数对象。
+// 先定义一个对象，然后使用（）运算符，进行运算
+// 下面的函数都继承收集类型的结构体，用来访问类型。
 template <class _Tp>
 struct plus : public binary_function<_Tp,_Tp,_Tp> {
   _Tp operator()(const _Tp& __x, const _Tp& __y) const { return __x + __y; }
@@ -141,18 +149,32 @@ struct logical_not : public unary_function<_Tp,bool>
   bool operator()(const _Tp& __x) const { return !__x; }
 };
 
+// 上面是简单的类类型对象
+
+
+// 下面是高级点的了
+
+
 template <class _Predicate>
 class unary_negate
   : public unary_function<typename _Predicate::argument_type, bool> {
+    // _Predicate是一个类类型对象，而且继承了unary_function或是binary_function
+    // 然后该类的参数就是_Predicate的参数类型
+
+    // unary_function决定了只有一个参数
 protected:
+  // 保存函数对象
   _Predicate _M_pred;
 public:
   explicit unary_negate(const _Predicate& __x) : _M_pred(__x) {}
   bool operator()(const typename _Predicate::argument_type& __x) const {
-    return !_M_pred(__x);
+    // 将返回类型转换为bool类型
+    return !_M_pred(__x); 
   }
 };
 
+// 使用函数封装这个对象。或者说,传入参数,直接调用执行
+// 有两个参数.第一个是<>里的
 template <class _Predicate>
 inline unary_negate<_Predicate> 
 not1(const _Predicate& __pred)
@@ -200,13 +222,20 @@ public:
   }
 };
 
+// 这里只是返回一个函数对象,并没有调用
 template <class _Operation, class _Tp>
 inline binder1st<_Operation> 
 bind1st(const _Operation& __fn, const _Tp& __x) 
 {
+  // 这个东西,_Arg1_type是个类型名.那么_Arg1_type(__x)是什么意思?
+  // 这个是类型转换吗?
+  // 我擦,是这样的,使用的是拷贝函数,创建了一个对象啊.
+  // 这里不是类型转换,是使用传入的变量,然后创建了一个对象啊.
   typedef typename _Operation::first_argument_type _Arg1_type;
   return binder1st<_Operation>(__fn, _Arg1_type(__x));
 }
+
+
 
 template <class _Operation> 
 class binder2nd
@@ -219,6 +248,8 @@ public:
   binder2nd(const _Operation& __x,
             const typename _Operation::second_argument_type& __y) 
       : op(__x), value(__y) {}
+      // 这里表示在对象 初始化的时候,先传入了要执行的函数(或是对象),和第二个参数.
+      // 在正真要执行的时候才传入第一个参数.
   typename _Operation::result_type
   operator()(const typename _Operation::first_argument_type& __x) const {
     return op(__x, value); 
@@ -235,6 +266,7 @@ bind2nd(const _Operation& __fn, const _Tp& __x)
 
 // unary_compose and binary_compose (extensions, not part of the standard).
 
+// 嵌套
 template <class _Operation1, class _Operation2>
 class unary_compose
   : public unary_function<typename _Operation2::argument_type,
@@ -252,6 +284,7 @@ public:
   }
 };
 
+// 也是返回对象
 template <class _Operation1, class _Operation2>
 inline unary_compose<_Operation1,_Operation2> 
 compose1(const _Operation1& __fn1, const _Operation2& __fn2)
@@ -277,6 +310,7 @@ public:
   }
 };
 
+// 使用函数来封装
 template <class _Operation1, class _Operation2, class _Operation3>
 inline binary_compose<_Operation1, _Operation2, _Operation3> 
 compose2(const _Operation1& __fn1, const _Operation2& __fn2, 
@@ -293,6 +327,7 @@ protected:
 public:
   pointer_to_unary_function() {}
   explicit pointer_to_unary_function(_Result (*__x)(_Arg)) : _M_ptr(__x) {}
+  // 这里是直接调用了函数？，然后返回了一个函数
   _Result operator()(_Arg __x) const { return _M_ptr(__x); }
 };
 
@@ -331,6 +366,7 @@ struct _Identity : public unary_function<_Tp,_Tp> {
 template <class _Tp> struct identity : public _Identity<_Tp> {};
 
 // select1st and select2nd are extensions: they are not part of the standard.
+// 返回一个结构体的第一个第二个成员
 template <class _Pair>
 struct _Select1st : public unary_function<_Pair, typename _Pair::first_type> {
   const typename _Pair::first_type& operator()(const _Pair& __x) const {
@@ -370,6 +406,7 @@ struct project2nd : public _Project2nd<_Arg1, _Arg2> {};
 // extensions: they are not part of the standard.  (The same, of course,
 // is true of the helper functions constant0, constant1, and constant2.)
 
+// 直接返回这个函数？
 template <class _Result>
 struct _Constant_void_fun {
   typedef _Result result_type;
